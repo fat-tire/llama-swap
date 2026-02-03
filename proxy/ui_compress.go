@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"mime"
+	"path/filepath"
 	"net/http"
 	"strings"
 )
@@ -32,6 +34,12 @@ func selectEncoding(acceptEncoding string) (encoding, ext string) {
 // ServeCompressedFile serves a file with compression support.
 // It checks for pre-compressed versions and serves them with proper headers.
 func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Request, name string) {
+
+	// Set Content-Type early based on the original filename extension
+	if ct := mime.TypeByExtension(filepath.Ext(name)); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+
 	encoding, ext := selectEncoding(r.Header.Get("Accept-Encoding"))
 
 	// Try to serve compressed version if client supports it
@@ -61,6 +69,8 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 	// Fall back to serving the uncompressed file
 	file, err := fs.Open(name)
 	if err != nil {
+		w.Header().Del("Content-Encoding")
+		w.Header().Del("Content-Type")
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -68,11 +78,15 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 
 	stat, err := file.Stat()
 	if err != nil {
+		w.Header().Del("Content-Encoding")
+		w.Header().Del("Content-Type")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if stat.IsDir() {
+		w.Header().Del("Content-Encoding")
+		w.Header().Del("Content-Type")
 		http.Error(w, "is a directory", http.StatusForbidden)
 		return
 	}
