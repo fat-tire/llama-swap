@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"os"
 	"mime"
 	"path/filepath"
 	"net/http"
@@ -34,6 +35,18 @@ func selectEncoding(acceptEncoding string) (encoding, ext string) {
 // ServeCompressedFile serves a file with compression support.
 // It checks for pre-compressed versions and serves them with proper headers.
 func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Request, name string) {
+
+    // anchor the filesystem from the executable so we can run from any directory
+	if dir, ok := fs.(http.Dir); ok {
+		if execPath, err := os.Executable(); err == nil {
+			// Follow symlinks if they exist
+			if realPath, err := filepath.EvalSymlinks(execPath); err == nil {
+				execPath = realPath
+			}
+			baseDir := filepath.Dir(filepath.Dir(execPath))
+			fs = http.Dir(filepath.Join(baseDir, string(dir)))
+		}
+	}
 
 	// Set Content-Type early based on the original filename extension
 	if ct := mime.TypeByExtension(filepath.Ext(name)); ct != "" {
