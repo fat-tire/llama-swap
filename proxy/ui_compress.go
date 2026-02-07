@@ -76,7 +76,7 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 				w.Header().Add("Vary", "Accept-Encoding")
 
 				// Serve the compressed file
-				http.ServeContent(w, r, name, stat.ModTime(), cf)
+                http.ServeContent(w, r, path.Base(name), stat.ModTime(), cf)
 				return
 			}
 		}
@@ -107,5 +107,4 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	http.ServeContent(w, r, name, stat.ModTime(), file)
-}
+	http.ServeContent(w, r, path.Base(name), stat.ModTime(), file)
