@@ -3,6 +3,7 @@ package proxy
 import (
 	"os"
 	"mime"
+	"path"
 	"path/filepath"
 	"net/http"
 	"strings"
@@ -36,6 +37,12 @@ func selectEncoding(acceptEncoding string) (encoding, ext string) {
 // It checks for pre-compressed versions and serves them with proper headers.
 func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Request, name string) {
 
+	// Normalize path to handle double slashes
+	name = path.Clean("/" + name)
+	if strings.HasPrefix(name, "/") {
+		name = name[1:]
+	}
+	
     // anchor the filesystem from the executable so we can run from any directory
 	if dir, ok := fs.(http.Dir); ok {
 		if execPath, err := os.Executable(); err == nil {
@@ -66,12 +73,6 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 				w.Header().Set("Content-Encoding", encoding)
 				w.Header().Add("Vary", "Accept-Encoding")
 
-				// Get original file info for content type detection
-				origFile, err := fs.Open(name)
-				if err == nil {
-					origFile.Close()
-				}
-
 				// Serve the compressed file
 				http.ServeContent(w, r, name, stat.ModTime(), cf)
 				return
@@ -84,7 +85,7 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		w.Header().Del("Content-Encoding")
 		w.Header().Del("Content-Type")
-		http.Error(w, err.Error(), http.StatusNotFound)
+		http.Error(w, "File not found: "+name, http.StatusNotFound)
 		return
 	}
 	defer file.Close()
