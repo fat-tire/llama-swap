@@ -45,7 +45,9 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 	
     // anchor the filesystem from the executable so we can run from any directory
 	if dir, ok := fs.(http.Dir); ok {
-		if execPath, err := os.Executable(); err == nil {
+		if _, err := os.Stat(string(dir)); err == nil {
+        // It's already valid, do nothing
+    } else if execPath, err := os.Executable(); err == nil {
 			// Follow symlinks if they exist
 			if realPath, err := filepath.EvalSymlinks(execPath); err == nil {
 				execPath = realPath
