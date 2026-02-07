@@ -108,3 +108,4 @@ func ServeCompressedFile(fs http.FileSystem, w http.ResponseWriter, r *http.Requ
 	}
 
 	http.ServeContent(w, r, path.Base(name), stat.ModTime(), file)
+}
