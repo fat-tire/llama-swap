@@ -12,6 +12,10 @@ endif
 # Capture the current build date in RFC3339 format
 BUILD_DATE := $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+# Detect host OS and Architecture
+GOOS ?= $(shell go env GOOS 2>/dev/null || echo linux)
+GOARCH ?= $(shell go env GOARCH 2>/dev/null || echo amd64)
+
 # Default target: Builds binaries for both OSX and Linux
 all: ui mac linux simple-responder
 
@@ -48,15 +52,9 @@ mac: ui
 	GOOS=darwin GOARCH=arm64 go build -ldflags="-X main.commit=${GIT_HASH} -X main.version=local_${GIT_HASH} -X main.date=${BUILD_DATE}" -o $(BUILD_DIR)/$(APP_NAME)-darwin-arm64
 
 # Build Linux binary
-linux: linux-arm64 linux-amd64
-
-linux-amd64: ui
-	@echo "Building Linux AMD64 binary..."
-	GOOS=linux GOARCH=amd64 go build -ldflags="-X main.commit=${GIT_HASH} -X main.version=local_${GIT_HASH} -X main.date=${BUILD_DATE}" -o $(BUILD_DIR)/$(APP_NAME)-linux-amd64
-
-linux-arm64: ui
-	@echo "Building Linux ARM64 binary..."
-	GOOS=linux GOARCH=arm64 go build -ldflags="-X main.commit=${GIT_HASH} -X main.version=local_${GIT_HASH} -X main.date=${BUILD_DATE}" -o $(BUILD_DIR)/$(APP_NAME)-linux-arm64
+linux: ui
+	@echo "Building Linux binary for $(GOOS)/$(GOARCH)..."
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -ldflags="-X main.commit=${GIT_HASH} -X main.version=local_${GIT_HASH} -X main.date=${BUILD_DATE}" -o $(BUILD_DIR)/$(APP_NAME)-$(GOOS)-$(GOARCH)
 
 # Build Windows binary
 windows: ui
@@ -65,9 +63,8 @@ windows: ui
 
 # for testing proxy.Process
 simple-responder: ui
-	@echo "Building simple responder"
-	GOOS=darwin GOARCH=arm64 go build -o $(BUILD_DIR)/simple-responder_darwin_arm64 cmd/simple-responder/simple-responder.go
-	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/simple-responder_linux_amd64 cmd/simple-responder/simple-responder.go
+	@echo "Building simple responder for $(GOOS)/$(GOARCH)"
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -o $(BUILD_DIR)/simple-responder-$(GOOS)-$(GOARCH) cmd/simple-responder/simple-responder.go
 
 simple-responder-windows:
 	@echo "Building simple responder for windows"
@@ -91,8 +88,6 @@ release:
 	echo "tagging new version: $$new_tag"; \
 	git tag "$$new_tag";
 
-GOOS ?= $(shell go env GOOS 2>/dev/null || echo linux)
-GOARCH ?= $(shell go env GOARCH 2>/dev/null || echo amd64)
 wol-proxy: $(BUILD_DIR)
 	@echo "Building wol-proxy"
 	go build -o $(BUILD_DIR)/wol-proxy-$(GOOS)-$(GOARCH)-$(shell date +%Y-%m-%d) cmd/wol-proxy/wol-proxy.go
