@@ -12,15 +12,22 @@ export interface Model {
   aliases?: string[];
 }
 
-export interface Metrics {
-  id: number;
-  timestamp: string;
-  model: string;
+export interface TokenMetrics {
   cache_tokens: number;
   input_tokens: number;
   output_tokens: number;
   prompt_per_second: number;
   tokens_per_second: number;
+}
+
+export interface ActivityLogEntry {
+  id: number;
+  timestamp: string;
+  model: string;
+  req_path: string;
+  resp_content_type: string;
+  resp_status_code: number;
+  tokens: TokenMetrics;
   duration_ms: number;
   has_capture: boolean;
 }
@@ -46,6 +53,16 @@ export interface InFlightStats {
 export interface APIEventEnvelope {
   type: "modelStatus" | "logData" | "metrics" | "inflight";
   data: string;
+}
+
+export interface HistogramData {
+  bins: number[];
+  min: number;
+  max: number;
+  binSize: number;
+  p99: number;
+  p95: number;
+  p50: number;
 }
 
 export interface VersionInfo {
